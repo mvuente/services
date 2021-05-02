@@ -1,0 +1,31 @@
+FROM alpine:latest
+
+
+RUN apk update && apk upgrade
+RUN apk add wget supervisor
+
+#influxdb installtion
+RUN apk add --upgrade influxdb
+RUN apk add bash
+
+#glibc preparation
+RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
+RUN wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.32-r0/glibc-2.32-r0.apk
+RUN apk add glibc-2.32-r0.apk
+
+#telegraf dowloading
+RUN wget https://dl.influxdata.com/telegraf/releases/telegraf-1.17.0_linux_amd64.tar.gz
+#RUN mkdir /telegraf
+RUN tar -xzvf telegraf-1.17.0_linux_amd64.tar.gz
+RUN cp -r telegraf-1.17.0/usr/* ./usr
+RUN cp -r telegraf-1.17.0/etc/* ./etc
+RUN cp -r telegraf-1.17.0/var/* ./var
+RUN ./usr/bin/telegraf -sample-config --input-filter docker --output-filter influxdb > /etc/telegraf/telegraf.conf
+
+COPY ./infl_cont.sh ./
+COPY ./supervisord_conf /etc/supervisord.conf
+RUN chmod +x ./infl_cont.sh
+
+EXPOSE 8086
+
+CMD ./infl_cont.sh

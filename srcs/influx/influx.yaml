@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: influx
+  annotations:
+    metallb.universe.tf/allow-shared-ip: shared
+  labels:
+    app: inf
+spec:
+  ports:
+    - port: 8086
+  selector:
+    app: inf
+    tier: influx
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: influx-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/var/lib/influx"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: influx-pv-claim
+  labels:
+    app: inf
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influx
+  labels:
+    app: inf
+spec:
+  selector:
+    matchLabels:
+      app: inf
+      tier: influx
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: inf
+        tier: influx
+    spec:
+      containers:
+      - image: influx_img
+        name: influx
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8086
+          name: influx
+        volumeMounts:
+        - name: influx-pv
+          mountPath: /var/lib/influx
+        - name: dockersock
+          mountPath: /var/run/docker.sock
+      volumes:
+      - name: influx-pv
+        persistentVolumeClaim:
+          claimName: influx-pv-claim
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock

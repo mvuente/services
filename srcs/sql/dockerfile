@@ -1,0 +1,18 @@
+FROM alpine:latest
+
+ENV ENV="/etc/profile"
+RUN apk add --no-cache exim-scripts 
+RUN apk update && apk upgrade
+RUN apk add openrc
+RUN apk add bash
+RUN apk add mysql mysql-client
+VOLUME [ "/sys/fs/cgroup" ]
+VOLUME [ "/var/lib/mysql" ]
+RUN mkdir /var/run/mysql
+RUN chmod 777 /var/run/mysql
+
+COPY ./my.cnf /etc/my.cnf
+COPY ./sql_cont.sh ./tmp/
+COPY ./mybase.sql ./tmp/
+RUN chmod +x ./tmp/sql_cont.sh
+CMD ./tmp/sql_cont.sh

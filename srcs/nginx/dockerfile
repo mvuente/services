@@ -1,0 +1,25 @@
+FROM alpine:latest
+
+RUN apk add bash
+RUN apk update && apk upgrade
+RUN apk add nginx openssl openssh supervisor
+
+COPY ./init_nginx_cont.sh ./tmp/
+RUN chmod +x /tmp/init_nginx_cont.sh
+COPY ./nginx_conf /etc/nginx/conf.d/default.conf
+COPY ./supervisord_conf /etc/supervisord.conf
+#ssh preparation
+RUN sed -i s/#PermitRootLogin.*/PermitRootLogin\ yes/ /etc/ssh/sshd_config \
+    && echo "root:root" | chpasswd
+RUN sed -ie 's/#Port 22/Port 22/g' /etc/ssh/sshd_config && \
+    sed -ri 's/#HostKey \/etc\/ssh\/ssh_host_key/HostKey \/etc\/ssh\/ssh_host_key/g' /etc/ssh/sshd_config && \
+    sed -ir 's/#HostKey \/etc\/ssh\/ssh_host_rsa_key/HostKey \/etc\/ssh\/ssh_host_rsa_key/g' /etc/ssh/sshd_config && \
+    sed -ir 's/#HostKey \/etc\/ssh\/ssh_host_dsa_key/HostKey \/etc\/ssh\/ssh_host_dsa_key/g' /etc/ssh/sshd_config && \
+    sed -ir 's/#HostKey \/etc\/ssh\/ssh_host_ecdsa_key/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/g' /etc/ssh/sshd_config && \
+    sed -ir 's/#HostKey \/etc\/ssh\/ssh_host_ed25519_key/HostKey \/etc\/ssh\/ssh_host_ed25519_key/g' /etc/ssh/sshd_config && \
+    /usr/bin/ssh-keygen -A && \
+    ssh-keygen -t rsa -b 4096 -f  /etc/ssh/ssh_host_key
+#RUN ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" root@192.168.99.100 ; echo "root\\n"
+EXPOSE 80 443 22
+
+CMD /tmp/init_nginx_cont.sh

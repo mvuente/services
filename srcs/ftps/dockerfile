@@ -1,0 +1,16 @@
+FROM alpine:latest
+RUN apk update && apk upgrade
+RUN apk add bash openssl
+RUN mkdir /ftps
+
+RUN apk add vsftpd
+
+COPY ./ftps_cont.sh .
+COPY ./vsftpd.conf /etc/vsftpd/
+RUN chmod 755 ./ftps_cont.sh
+RUN echo 'root:admin12' | chpasswd
+EXPOSE 21 21000 20
+
+
+CMD ./ftps_cont.sh
+
